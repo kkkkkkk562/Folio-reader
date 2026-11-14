@@ -24,17 +24,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Locate Gradle project root
+        id: find-project
+        run: |
+          PROJECT_FILE=$(find . -maxdepth 3 \( -name "settings.gradle.kts" -o -name "settings.gradle" \) | head -n 1)
+          if [ -z "$PROJECT_FILE" ]; then
+            echo "Error: Could not find settings.gradle or settings.gradle.kts anywhere in the repository!"
+            ls -la
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$PROJECT_FILE")
+          echo "Found project directory: $PROJECT_DIR"
+          echo "project_dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 'wrapper'
+          gradle-root-directory: ${{ steps.find-project.outputs.project_dir }}
 
       - name: Build Debug APK
+        working-directory: ${{ steps.find-project.outputs.project_dir }}
         run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FolioReader-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.find-project.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

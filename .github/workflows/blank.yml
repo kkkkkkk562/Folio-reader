@@ -1,17 +1,17 @@
-name: Build Debug APK
+name: Build and Release APK
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-debug-apk:
-    name: Build Folio Reader Debug APK
+    name: Build & Publish Folio Reader APK
     runs-on: ubuntu-latest
 
     steps:
@@ -29,27 +29,38 @@ jobs:
         run: |
           PROJECT_FILE=$(find . -maxdepth 3 \( -name "settings.gradle.kts" -o -name "settings.gradle" \) | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
-            echo "Error: Could not find settings.gradle or settings.gradle.kts anywhere in the repository!"
-            ls -la
+            echo "Error: Could not find settings.gradle or settings.gradle.kts!"
             exit 1
           fi
           PROJECT_DIR=$(dirname "$PROJECT_FILE")
-          echo "Found project directory: $PROJECT_DIR"
           echo "project_dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 'wrapper'
-          gradle-root-directory: ${{ steps.find-project.outputs.project_dir }}
 
       - name: Build Debug APK
         working-directory: ${{ steps.find-project.outputs.project_dir }}
         run: gradle assembleDebug --no-daemon --stacktrace
 
+      - name: Rename APK for Release
+        run: cp "${{ steps.find-project.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk" FolioReader-debug.apk
+
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FolioReader-debug-apk
-          path: ${{ steps.find-project.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          path: FolioReader-debug.apk
+
+      - name: Publish Public GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Folio Reader (Latest Build)
+          body: |
+            ### 📱 Direct APK Download
+            Click **`FolioReader-debug.apk`** under **Assets** below to download and install the latest build on your Android device.
+          files: FolioReader-debug.apk
+          prerelease: false
+          make_latest: true

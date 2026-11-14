@@ -1,0 +1,8 @@
+{
+  "name": "Folio Reader",
+  "description": "Industrial-grade offline eBook & PDF reader featuring realistic page-flip animations, text zooming, highlighting, and annotations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
